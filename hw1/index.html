@@ -1,7 +1,239 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Homework 1 index.html here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184/284A Rasterizer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184/284A: Computer Graphics and Imaging, Spring 2024</h1>
+<h1 align="middle">Homework 1: Rasterizer</h1>
+<h2 align="middle">Lili Wang, Jennifer Zhao</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>One thing that was interesting about the homework was considering how to store information, such as the sample values when supersampling. A lot goes into actually implementing an algorithm, more so than simple descriptions often suggest.</p>
+
+<h2 align="middle">Section I: Rasterization</h2>
+
+<h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+
+<p>The algorithm rasterizes triangles by determining the bounding box of the triangle specified by the parameters to the function. (x, y) coordinates within the bounding box are tested using the Three Line Test. If the winding of the triangles if clockwise, the coordinates are rearranged to be counterclockwise. If the point is found to be enclosed by the three lines that represent the sides of the triangle with counterclockwise winding, the point is considered to be in the interior of the triangle, and a colored pixel is pushed into that respective (x, y) spot in the sample buffer.</p>
+
+<p>Additionally, if a point lies on Line 0 or Line 1 of the triangle, it is filled.</p>
+
+<p>The algorithm is no worse than checking each sample within the bounding box of the triangle, as that is the approach that is taken.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task1img1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Red triangle detail.</figcaption>
+      </td>
+      <td>
+        <img src="images/task1img2.png" align="middle" width="400px"/>
+        <figcaption align="middle">Blue triangle detail.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/task1img3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Green triangle detail.</figcaption>
+      </td>
+      <td>
+        <img src="images/task1img4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Yellow triangle detail.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+<h3 align="middle">Part 2: Antialiasing triangles</h3>
+
+<p>For supersampling, the original rasterization algorithm is modified according to the sample rate. For each (x, y) coordinate of the frame buffer, "sample rate" number of points are tested by the Three Line Test. These samples are stored in the sample buffer vector.</p>
+
+<p>For each "sample rate" number of samples, the colors of all the supersampled points are averaged and stored in the frame buffer. The supersampled samples in the sample buffer are accessed by converting between sample coordinates and frame coordinates. The color is averaged by summing the color values of each sample and dividing by the sample rate.</p>
+
+<p>Compared to the original rasterization process, the fill_pixel function needed to be modified to update the correct location in the sample buffer. In addition, each time the frame or sample rate are updated, the size of the sample buffer is also updated to be width * height * sample_rate.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/screenshot_2-13_22-38-8.png" align="middle" width="400px"/>
+        <figcaption align="middle">Pink triangle at sample rate of 1.</figcaption>
+      </td>
+      <td>
+        <img src="images/screenshot_2-13_22-38-13.png" align="middle" width="400px"/>
+        <figcaption align="middle">Pink triangle at sample rate of 4.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/screenshot_2-13_22-38-18.png" align="middle" width="400px"/>
+        <figcaption align="middle">Pink triangle at sample rate of 16.</figcaption>
+      </td>
+      <!-- <td>
+        <img src="images/task1img4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Yellow triangle detail.</figcaption>
+      </td> -->
+    </tr>
+  </table>
+</div>
+
+<p>Jaggies are observed in the image generated at a sample rate of 1. This occurs because the sampling rate is much lesser than the frequency at which the visual signal changes. In other words, the pixels are spaced too far apart to be able to represent the sharp slope of the triangle side.</p>
+
+<p>The jaggies are smooth but still visible at a sample rate of 4. The smoothing occurs because pixels on the edge of the triangle take on the value of the average of 4 evenly spaced points within the pixel.</p>
+
+<p>For the same reason, jaggies are even less visible at a sample rate of 16. The increased sample rate is closer to the frequency at which the visual signal of the triangle shape is changing.</p>
+
+<h3 align="middle">Part 3: Transforms</h3>
+
+<p>Using rotations and translations, cubeman is pictured here dancing. Observe his excellent passé form.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cubeman dancing.</figcaption>
+      </td>
+  </table>
+</div>
+
+<h2 align="middle">Section II: Sampling</h2>
+
+<h3 align="middle">Part 4: Barycentric coordinates</h3>
+
+<p>Barycentric coordinates express each point on the triangle as a weighted sum of the three endpoints. The three scalar weights can be determined geometrically. For example, alpha, which corresponds to the weight for point A, may be thought of as the relative position of the point along the length of the perpendicular bisector from point A to edge BC.</p>
+
+<p>The result of Barycentric coordinate interpolation is a smooth gradient between all three corners, as demonstrated by the triangle.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task4img1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Barycentric coordinates.</figcaption>
+      </td>
+  </table>
+
+  <tr>
+    <td>
+      <img src="images/task4img2.png" align="middle" width="400px"/>
+      <figcaption align="middle">Task 7.</figcaption>
+    </td>
+</table>
+</div>
+
+
+<h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+<p>In pixel sampling, each pixel gets its color from the corresponding point(s) in the texture map using barycentric coordinates. To obtain the barycentric coordinates, we calculated alpha, beta, and gamma, which represent the weights of the vertices in a triangular mesh for a given (x, y) coordinate. We then used these barycentric coordinates to determine the corresponding u and v values for (x, y). </p>
+
+<p>For nearest sampling, we simply scaled the u and v values by the height and width of the mipmap level and used the (u, v) coordinate to get the corresponding (u, v) pixel in the texture map. </p>
+
+<p>For bilinear sampling, we scaled the u and v values by the height and width of the mipmap level and then get the coordinates of the 4 pixels surrounding/nearest to the (u, v) coordinate. Then we calculated the decimal difference between u and the left edge of the pixels (s) and the decimal difference between v and the bottom edge of the pixels (t). We then used s and t in a series of linear interpolations, first combining the top and bottom pairs of pixels and then combining the results of those 2 linear interpolations to get the ultimate color value for the (u, v) coordinate. </p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task5_bi1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bilinear sampling at 1 sample per pixel</figcaption>
+      </td>
+  </table>
+
+  <tr>
+    <td>
+      <img src="images/task5_bi16.png" align="middle" width="400px"/>
+      <figcaption align="middle">Bilinear sampling at 16 samples per pixel</figcaption>
+    </td>
+</table>
+
+  <tr>
+    <td>
+      <img src="images/task5_np1.png" align="middle" width="400px"/>
+      <figcaption align="middle">Nearest sampling at 1 sample per pixel</figcaption>
+    </td>
+  </table>
+
+  <tr>
+  <td>
+    <img src="images/task5_np16.png" align="middle" width="400px"/>
+    <figcaption align="middle">Nearest sampling at 16 samples per pixel</figcaption>
+  </td>
+  </table>
+</div>
+
+<p>In the images above nearest pixel sampling and bilinear interpolation look similar but bilinear interpolation is slightly smoother. Bilinear interpolation decreases aliasing more than nearest pixel sampling so there will be a larger difference between the 2 methods when there is more aliasing in the image.</p>
+
+
+<h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
+<p>Level sampling in mipmapping refers to the process of selecting an appropriate mip level (or level of detail) from a precomputed sequence of progressively downsampled (sampled at a lower resolution) textures, known as mipmaps.</p>
+<p>For texture mapping we implemented level sampling by calculating the alpha, beta, and gamma for coordinates (x+1, y) and (x, y+1). We used those to calculate u and v for each of those coordinates and then calculated du/dx, dv/dx, du/dy, and dv/dy. Then we calculated the difference vectors by subtracting (du/dx, dv/dx) - (u, v) and (du/dy, dv/dy) - (u, v). We scaled the difference vectors by the texture width and height and then calculated the level using the mipmap level equation from Lecture 5. </p>
+<p>For L_NEAREST we rounded the level (D) found to the nearest integer. For L_LINEAR we found the decimal difference between the D found and the closest integer and used that to linearly interpolate the color found for level D and the color found for level D+1. </p>
+<p>Pixel sampling is very fast and uses minimal memory since it samples a single point within a pixel and stores the color information for this single sample. However, pixel sampling may produce a lot of aliasing artifacts and has low antialiasing power. Level sampling (mipmapping) can increase speed by selecting lower resolution mip levels for distant or smaller objects but it requires additional memory in order to store the precomputed mip levels. Mipmapping reduces aliasing artifiacts by using lower resolution textures and blurring. Increasing the number of samples per pixel (supersampling) decreases speed and increases memory usage because it increases the number of samples that must be computed and stored. Supersampling is a powerful antialiasing technique.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task6_l0_b.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_ZERO and P_LINEAR</figcaption>
+      </td>
+  </table>
+
+  <tr>
+    <td>
+      <img src="images/task6_l0_n.png" align="middle" width="400px"/>
+      <figcaption align="middle">L_ZERO and P_NEAREST</figcaption>
+    </td>
+</table>
+
+  <tr>
+    <td>
+      <img src="images/task6_ln_b.png" align="middle" width="400px"/>
+      <figcaption align="middle">L_NEAREST and P_LINEAR</figcaption>
+    </td>
+  </table>
+
+  <tr>
+  <td>
+    <img src="images/task6_ln_n.png" align="middle" width="400px"/>
+    <figcaption align="middle">L_NEAREST and P_NEAREST</figcaption>
+  </td>
+  </table>
+</div>
+
+
+<h2 align="middle">Section III: Art Competition</h2>
+<p>If you are not participating in the optional art competition, don't worry about this section!</p>
+
+<h3 align="middle">Part 7: Draw something interesting!</h3>
+
+</body>
 </html>
